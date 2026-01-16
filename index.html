@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>git-Ladder</title>
     <style>
         /* Theme Variables */
@@ -48,7 +48,7 @@
         header {
             background: var(--gh-header);
             color: white;
-            padding: 12px 20px;
+            padding: 12px 15px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -58,39 +58,38 @@
             z-index: 100;
         }
 
-        .repo-title { font-weight: 600; font-size: 16px; }
+        .repo-title { font-weight: 600; font-size: 14px; }
         .repo-title span { opacity: 0.5; font-weight: 400; }
 
         .theme-toggle {
             background: transparent;
             border: 1px solid #444;
             color: white;
-            padding: 6px 12px;
+            padding: 6px 10px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px;
             display: flex;
             align-items: center;
             gap: 5px;
         }
 
-        /* Responsive Container */
         .main-container {
             display: grid;
             grid-template-columns: 1fr 320px;
             gap: 20px;
-            max-width: 1100px;
-            margin: 20px auto;
+            max-width: 1200px;
+            margin: 15px auto;
             padding: 0 15px;
             box-sizing: border-box;
+            width: 100%;
         }
-
-        .board-area { width: 100%; }
 
         .board-container { 
             position: relative; 
             width: 100%; 
-            max-width: 600px;
+            /* Board will be as wide as container allows */
+            max-width: 700px; 
             margin: 0 auto;
         }
 
@@ -98,13 +97,15 @@
             display: grid;
             grid-template-columns: repeat(10, 1fr);
             grid-template-rows: repeat(10, 1fr);
-            border: 2px solid var(--gh-border);
-            border-radius: 6px;
+            border: 1px solid var(--gh-border);
+            border-radius: 4px;
             width: 100%;
             aspect-ratio: 1 / 1;
             position: relative;
             z-index: 1;
-            box-sizing: border-box;
+            background: var(--gh-border); /* Grid line color */
+            gap: 1px; /* Creates clean grid lines */
+            overflow: hidden;
         }
 
         #game-canvas {
@@ -115,31 +116,30 @@
         }
 
         .tile {
-            border: 0.5px solid var(--gh-border);
+            background-color: var(--tile-light);
             display: flex;
             flex-direction: column;
-            padding: 2px;
-            font-size: clamp(8px, 1.5vw, 10px);
+            padding: 10%;
+            /* Font scales with the board size */
+            font-size: clamp(7px, 2.2vw, 12px); 
             font-weight: bold;
             color: #8c959f;
-            box-sizing: border-box;
-            overflow: hidden;
+            position: relative;
         }
 
-        .tile-light { background-color: var(--tile-light); }
         .tile-dark { background-color: var(--tile-dark); }
-        .pr-ladder-tile { background-color: rgba(63, 185, 80, 0.15); color: var(--gh-green); }
-        .conflict-snake-tile { background-color: rgba(248, 81, 73, 0.15); color: var(--gh-red); }
+        .pr-ladder-tile { background-color: rgba(63, 185, 80, 0.1); color: var(--gh-green); }
+        .conflict-snake-tile { background-color: rgba(248, 81, 73, 0.1); color: var(--gh-red); }
 
         .player {
-            width: 6%; 
-            height: 6%; 
+            width: 6.5%; 
+            height: 6.5%; 
             border-radius: 4px; 
             position: absolute;
-            transition: left 0.3s ease, top 0.3s ease, transform 0.15s ease;
+            transition: left 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), top 0.4s ease;
             z-index: 10; 
             border: 1.5px solid white; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             pointer-events: none;
         }
         #p1 { background-color: var(--gh-blue); }
@@ -148,21 +148,20 @@
         .sidebar {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 15px;
         }
 
         .card {
             border: 1px solid var(--gh-border);
             border-radius: 6px;
-            overflow: hidden;
             background: var(--card-bg);
         }
 
         .card-header {
             background: var(--sidebar-header);
-            padding: 10px;
+            padding: 10px 15px;
             border-bottom: 1px solid var(--gh-border);
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
         }
 
@@ -171,35 +170,34 @@
         .btn {
             width: 100%; padding: 12px; background: var(--gh-green); color: white;
             border: 1px solid rgba(27,31,36,0.15); border-radius: 6px;
-            font-weight: 600; cursor: pointer;
+            font-weight: 600; cursor: pointer; font-size: 14px;
         }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn:active { opacity: 0.8; transform: translateY(1px); }
 
         .log {
-            font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, monospace;
-            font-size: 12px; height: 180px;
+            font-family: ui-monospace, SFMono-Regular, monospace;
+            font-size: 11px; height: 150px;
             overflow-y: auto; padding: 10px; background: var(--tile-dark);
             color: var(--text-main);
         }
 
-        .log-entry { border-bottom: 1px solid var(--gh-border); padding: 4px 0; }
+        .log-entry { border-bottom: 1px solid var(--gh-border); padding: 5px 0; opacity: 0.8; }
 
-        /* Tablet and Mobile Layout */
+        /* Mobile Optimization */
         @media (max-width: 850px) {
             .main-container { 
                 grid-template-columns: 1fr; 
-                margin: 10px auto;
+                margin: 0;
+                padding: 10px;
+                gap: 15px;
+            }
+            .board-container {
+                max-width: 100%; /* Use full screen width */
             }
             .sidebar {
                 display: grid;
-                grid-template-columns: 1fr 1fr;
+                grid-template-columns: 1fr;
             }
-        }
-
-        @media (max-width: 500px) {
-            .sidebar { grid-template-columns: 1fr; }
-            .repo-title { font-size: 14px; }
-            .player { border-width: 1px; }
         }
     </style>
 </head>
@@ -214,7 +212,7 @@
 
 <div class="main-container">
     <div class="board-area">
-        <div class="board-container" id="container">
+        <div class="board-container">
             <div id="game-board" class="board"></div>
             <svg id="game-canvas"></svg>
             <div id="p1" class="player"></div>
@@ -226,9 +224,9 @@
         <div class="card">
             <div class="card-header">Terminal / Deploy Control</div>
             <div class="card-body">
-                <div id="turn-display" style="margin-bottom: 10px; font-weight: bold; color: var(--gh-blue);">Player 1 (Blue) to Roll</div>
+                <div id="turn-display" style="margin-bottom: 12px; font-weight: bold; color: var(--gh-blue);">Player 1 (Blue) to Roll</div>
                 <button id="roll-btn" class="btn" onclick="playTurn()">Roll Dice</button>
-                <div id="dice-result" style="margin-top: 10px; font-size: 24px; text-align: center; font-weight: 800;">-</div>
+                <div id="dice-result" style="margin-top: 12px; font-size: 28px; text-align: center;">🎲 -</div>
             </div>
         </div>
 
@@ -242,28 +240,16 @@
 </div>
 
 <script>
-    const totalTiles = 100;
-    let p1Pos = 1;
-    let p2Pos = 1;
-    let currentTurn = 1;
-
     const ladders = { 4: 25, 13: 46, 33: 49, 42: 63, 50: 69, 62: 81, 74: 92 };
     const snakes = { 27: 5, 40: 3, 43: 18, 54: 31, 66: 45, 89: 53, 95: 77, 99: 41 };
+    let p1Pos = 1, p2Pos = 1, currentTurn = 1;
 
     function toggleTheme() {
         const body = document.body;
         const icon = document.getElementById('theme-icon');
-        const btnText = document.querySelector('.theme-toggle');
-        
-        if (body.getAttribute('data-theme') === 'light') {
-            body.setAttribute('data-theme', 'dark');
-            icon.innerText = '☀️';
-            btnText.innerHTML = '☀️ Light Mode';
-        } else {
-            body.setAttribute('data-theme', 'light');
-            icon.innerText = '🌙';
-            btnText.innerHTML = '🌙 Dark Mode';
-        }
+        const isLight = body.getAttribute('data-theme') === 'light';
+        body.setAttribute('data-theme', isLight ? 'dark' : 'light');
+        icon.innerText = isLight ? '☀️' : '🌙';
         drawConnectors();
     }
 
@@ -274,15 +260,14 @@
             for (let c = 0; c < 10; c++) {
                 let tileNum = (r % 2 === 0) ? (r * 10) + (c + 1) : (r * 10) + (10 - c);
                 const tile = document.createElement('div');
-                tile.id = `tile-${tileNum}`;
-                tile.className = `tile ${(r + c) % 2 === 0 ? 'tile-light' : 'tile-dark'}`;
+                tile.className = `tile ${(r + c) % 2 !== 0 ? 'tile-dark' : ''}`;
                 
                 if (ladders[tileNum]) {
                     tile.classList.add('pr-ladder-tile');
-                    tile.innerHTML = `<span>${tileNum}</span><div style="font-size:0.7em">↑ PR</div>`;
+                    tile.innerHTML = `<span>${tileNum}</span><div style="font-size:0.7em; margin-top:2px;">↑ PR</div>`;
                 } else if (snakes[tileNum]) {
                     tile.classList.add('conflict-snake-tile');
-                    tile.innerHTML = `<span>${tileNum}</span><div style="font-size:0.7em">↓ ERR</div>`;
+                    tile.innerHTML = `<span>${tileNum}</span><div style="font-size:0.7em; margin-top:2px;">↓ ERR</div>`;
                 } else {
                     tile.innerHTML = `<span>${tileNum}</span>`;
                 }
@@ -298,63 +283,50 @@
         const isDark = document.body.getAttribute('data-theme') === 'dark';
         const tileSize = board.offsetWidth / 10;
 
-        function getCenter(pos) {
+        const getCenter = (pos) => {
             const row = Math.floor((pos - 1) / 10);
             const col = (pos - 1) % 10;
             const xCol = (row % 2 === 0) ? col : 9 - col;
             const yRow = 9 - row;
             return { x: xCol * tileSize + tileSize / 2, y: yRow * tileSize + tileSize / 2 };
-        }
+        };
 
         for (let start in ladders) {
-            const p1 = getCenter(start); const p2 = getCenter(ladders[start]);
+            const p1 = getCenter(start), p2 = getCenter(ladders[start]);
             const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
             line.setAttribute("x1", p1.x); line.setAttribute("y1", p1.y);
             line.setAttribute("x2", p2.x); line.setAttribute("y2", p2.y);
-            line.setAttribute("stroke", isDark ? "rgba(63, 185, 80, 0.6)" : "rgba(35, 134, 54, 0.4)");
-            line.setAttribute("stroke-width", tileSize/10); line.setAttribute("stroke-dasharray", "8,4");
+            line.setAttribute("stroke", isDark ? "#3fb95099" : "#23863666");
+            line.setAttribute("stroke-width", tileSize/8); line.setAttribute("stroke-dasharray", "5,3");
             svg.appendChild(line);
         }
 
         for (let start in snakes) {
-            const p1 = getCenter(start); const p2 = getCenter(snakes[start]);
+            const p1 = getCenter(start), p2 = getCenter(snakes[start]);
             const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            const midX = (p1.x + p2.x) / 2 + (tileSize/2); const midY = (p1.y + p2.y) / 2;
-            path.setAttribute("d", `M ${p1.x} ${p1.y} Q ${midX} ${midY} ${p2.x} ${p2.y}`);
-            path.setAttribute("stroke", isDark ? "rgba(248, 81, 73, 0.6)" : "rgba(207, 34, 46, 0.4)");
-            path.setAttribute("stroke-width", tileSize/10); path.setAttribute("fill", "transparent");
+            const midX = (p1.x + p2.x) / 2 + (tileSize/2);
+            path.setAttribute("d", `M ${p1.x} ${p1.y} Q ${midX} ${(p1.y+p2.y)/2} ${p2.x} ${p2.y}`);
+            path.setAttribute("stroke", isDark ? "#f8514999" : "#cf222e66");
+            path.setAttribute("stroke-width", tileSize/8); path.setAttribute("fill", "transparent");
             svg.appendChild(path);
         }
     }
 
-    const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-    function getCoords(pos, pNum) {
+    function updatePlayerPositions() {
         const board = document.getElementById('game-board');
         const tileSize = board.offsetWidth / 10;
-        const row = Math.floor((pos - 1) / 10);
-        const col = (pos - 1) % 10;
-        const xCol = (row % 2 === 0) ? col : 9 - col;
-        const yRow = 9 - row;
-        
-        // Offset players slightly so they don't overlap perfectly
-        const offset = pNum === 1 ? tileSize * 0.1 : tileSize * 0.3;
 
-        return {
-            left: (xCol * tileSize + offset) + "px",
-            top: (yRow * tileSize + tileSize * 0.2) + "px"
-        };
-    }
-
-    function updatePlayerPositions() {
         [1, 2].forEach(pNum => {
             const pos = pNum === 1 ? p1Pos : p2Pos;
-            const coords = getCoords(pos, pNum);
+            const row = Math.floor((pos - 1) / 10);
+            const col = (pos - 1) % 10;
+            const xCol = (row % 2 === 0) ? col : 9 - col;
+            const yRow = 9 - row;
+            
+            const offset = pNum === 1 ? tileSize * 0.1 : tileSize * 0.35;
             const pElem = document.getElementById(`p${pNum}`);
-            if(pElem) { 
-                pElem.style.left = coords.left; 
-                pElem.style.top = coords.top; 
-            }
+            pElem.style.left = (xCol * tileSize + offset) + "px";
+            pElem.style.top = (yRow * tileSize + tileSize * 0.2) + "px";
         });
         drawConnectors();
     }
@@ -364,36 +336,31 @@
         btn.disabled = true;
         const dice = Math.floor(Math.random() * 6) + 1;
         document.getElementById('dice-result').innerText = "🎲 " + dice;
-        const pElem = document.getElementById(`p${currentTurn}`);
-        let currentPos = currentTurn === 1 ? p1Pos : p2Pos;
-        logMsg(`Player ${currentTurn} rolled ${dice}. Committing...`);
+        
+        let pos = currentTurn === 1 ? p1Pos : p2Pos;
+        logMsg(`Player ${currentTurn} rolled ${dice}`);
 
-        for (let i = 1; i <= dice; i++) {
-            currentPos++;
-            if (currentPos > 100) { currentPos = 100; break; }
-            const coords = getCoords(currentPos, currentTurn);
-            pElem.style.left = coords.left; pElem.style.top = coords.top;
-            pElem.style.transform = "scale(1.4) translateY(-10px)";
-            await wait(200); pElem.style.transform = "scale(1) translateY(0)";
-            await wait(100);
+        for (let i = 0; i < dice; i++) {
+            if (pos < 100) pos++;
+            if (currentTurn === 1) p1Pos = pos; else p2Pos = pos;
+            updatePlayerPositions();
+            await new Promise(r => setTimeout(r, 200));
         }
 
-        if (ladders[currentPos]) {
-            await wait(400); logMsg(`[SUCCESS] PR Merged! Skipping ahead.`);
-            currentPos = ladders[currentPos];
-        } else if (snakes[currentPos]) {
-            await wait(400); logMsg(`[ERROR] Build Failed! Reverting.`);
-            currentPos = snakes[currentPos];
+        if (ladders[pos]) {
+            logMsg(`[SUCCESS] PR Merged!`);
+            pos = ladders[pos];
+        } else if (snakes[pos]) {
+            logMsg(`[ERROR] Build Failed!`);
+            pos = snakes[pos];
         }
 
-        const finalCoords = getCoords(currentPos, currentTurn);
-        pElem.style.left = finalCoords.left; pElem.style.top = finalCoords.top;
+        if (currentTurn === 1) p1Pos = pos; else p2Pos = pos;
+        updatePlayerPositions();
 
-        if (currentTurn === 1) p1Pos = currentPos; else p2Pos = currentPos;
-
-        if (currentPos === 100) {
-            alert(`Player ${currentTurn} successfully deployed to Production!`);
-            location.reload(); return;
+        if (pos === 100) {
+            alert(`Player ${currentTurn} deployed to Production!`);
+            location.reload();
         }
 
         currentTurn = currentTurn === 1 ? 2 : 1;
@@ -410,13 +377,7 @@
         log.prepend(entry);
     }
 
-    window.onload = () => { 
-        createBoard(); 
-        // Small delay to ensure layout is calculated
-        setTimeout(updatePlayerPositions, 100); 
-    };
-    
-    // Crucial for responsiveness: update positions on resize
+    window.onload = () => { createBoard(); setTimeout(updatePlayerPositions, 100); };
     window.addEventListener('resize', updatePlayerPositions);
 </script>
 </body>
