@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>git-Ladder</title>
+    <style>
+        /* Theme Variables */
+        :root {
+            /* Light Mode */
+            --gh-bg: #ffffff;
+            --gh-header: #24292f;
+            --gh-border: #d0d7de;
+            --gh-green: #238636;
+            --gh-red: #cf222e;
+            --gh-blue: #0969da;
+            --tile-light: #ffffff;
+            --tile-dark: #f6f8fa;
+            --text-main: #24292f;
+            --card-bg: #ffffff;
+            --sidebar-header: #f6f8fa;
+        }
+
+        [data-theme="dark"] {
+            /* Dark Mode (GitHub Dimmed/Dark style) */
+            --gh-bg: #0d1117;
+            --gh-header: #161b22;
+            --gh-border: #30363d;
+            --gh-green: #3fb950;
+            --gh-red: #f85149;
+            --gh-blue: #58a6ff;
+            --tile-light: #161b22;
+            --tile-dark: #0d1117;
+            --text-main: #c9d1d9;
+            --card-bg: #161b22;
+            --sidebar-header: #21262d;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: var(--gh-bg);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            transition: background-color 0.3s ease;
+        }
+
+        header {
+            background: var(--gh-header);
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--gh-border);
+        }
+
+        .repo-title { font-weight: 600; font-size: 16px; }
+        .repo-title span { opacity: 0.5; font-weight: 400; }
+
+        .theme-toggle {
+            background: transparent;
+            border: 1px solid #444;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 20px;
+            max-width: 1100px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .board-container { position: relative; width: 100%; }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+            border: 2px solid var(--gh-border);
+            border-radius: 6px;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            position: relative;
+            z-index: 1;
+        }
+
+        #game-canvas {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .tile {
+            border: 0.5px solid var(--gh-border);
+            display: flex;
+            flex-direction: column;
+            padding: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            color: #8c959f;
+        }
+
+        .tile-light { background-color: var(--tile-light); }
+        .tile-dark { background-color: var(--tile-dark); }
+
+        .pr-ladder-tile { background-color: rgba(63, 185, 80, 0.15); color: var(--gh-green); }
+        .conflict-snake-tile { background-color: rgba(248, 81, 73, 0.15); color: var(--gh-red); }
+
+        .player {
+            width: 25px; height: 25px; border-radius: 4px; position: absolute;
+            transition: left 0.3s ease, top 0.3s ease, transform 0.15s ease;
+            z-index: 10; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            pointer-events: none;
+        }
+        #p1 { background-color: var(--gh-blue); }
+        #p2 { background-color: #bf3989; }
+
+        .card {
+            border: 1px solid var(--gh-border);
+            border-radius: 6px;
+            overflow: hidden;
+            background: var(--card-bg);
+        }
+
+        .card-header {
+            background: var(--sidebar-header);
+            padding: 10px;
+            border-bottom: 1px solid var(--gh-border);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .card-body { padding: 15px; }
+
+        .btn {
+            width: 100%; padding: 10px; background: var(--gh-green); color: white;
+            border: 1px solid rgba(27,31,36,0.15); border-radius: 6px;
+            font-weight: 600; cursor: pointer;
+        }
+
+        .log {
+            font-family: monospace; font-size: 12px; height: 200px;
+            overflow-y: auto; padding: 10px; background: var(--tile-dark);
+            color: var(--text-main);
+        }
+
+        .log-entry { border-bottom: 1px solid var(--gh-border); padding: 4px 0; }
+
+        @media (max-width: 850px) {
+            .main-container { grid-template-columns: 1fr; }
+            .board-container { max-width: 500px; margin: 0 auto; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+
+<header>
+    <div class="repo-title">git-ladder <span>/</span> <b>snake-n-ladder</b></div>
+    <button class="theme-toggle" onclick="toggleTheme()">
+        <span id="theme-icon">🌙</span> Dark Mode
+    </button>
+</header>
+
+<div class="main-container">
+    <div class="board-area">
+        <div class="board-container">
+            <div id="game-board" class="board"></div>
+            <svg id="game-canvas"></svg>
+            <div id="p1" class="player"></div>
+            <div id="p2" class="player"></div>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="card">
+            <div class="card-header">Terminal / Deploy Control</div>
+            <div class="card-body">
+                <div id="turn-display" style="margin-bottom: 10px; font-weight: bold; color: var(--gh-blue);">Player 1 (Blue) to Roll</div>
+                <button id="roll-btn" class="btn" onclick="playTurn()">Roll Dice</button>
+                <div id="dice-result" style="margin-top: 10px; font-size: 24px; text-align: center; font-weight: 800;">-</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Deployment Logs</div>
+            <div id="game-log" class="log">
+                <div class="log-entry">> Initializing repository...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const totalTiles = 100;
+    let p1Pos = 1;
+    let p2Pos = 1;
+    let currentTurn = 1;
+
+    const ladders = { 4: 25, 13: 46, 33: 49, 42: 63, 50: 69, 62: 81, 74: 92 };
+    const snakes = { 27: 5, 40: 3, 43: 18, 54: 31, 66: 45, 89: 53, 95: 77, 99: 41 };
+
+    function toggleTheme() {
+        const body = document.body;
+        const icon = document.getElementById('theme-icon');
+        const btnText = document.querySelector('.theme-toggle');
+        
+        if (body.getAttribute('data-theme') === 'light') {
+            body.setAttribute('data-theme', 'dark');
+            icon.innerText = '☀️';
+            btnText.innerHTML = '☀️ Light Mode';
+        } else {
+            body.setAttribute('data-theme', 'light');
+            icon.innerText = '🌙';
+            btnText.innerHTML = '🌙 Dark Mode';
+        }
+        drawConnectors(); // Redraw lines to match theme colors
+    }
+
+    function createBoard() {
+        const board = document.getElementById('game-board');
+        board.innerHTML = '';
+        for (let r = 9; r >= 0; r--) {
+            for (let c = 0; c < 10; c++) {
+                let tileNum = (r % 2 === 0) ? (r * 10) + (c + 1) : (r * 10) + (10 - c);
+                const tile = document.createElement('div');
+                tile.id = `tile-${tileNum}`;
+                tile.className = `tile ${(r + c) % 2 === 0 ? 'tile-light' : 'tile-dark'}`;
+                
+                if (ladders[tileNum]) {
+                    tile.classList.add('pr-ladder-tile');
+                    tile.innerHTML = `<span>${tileNum}</span><div style="font-size:8px">↑ PULL_REQ</div>`;
+                } else if (snakes[tileNum]) {
+                    tile.classList.add('conflict-snake-tile');
+                    tile.innerHTML = `<span>${tileNum}</span><div style="font-size:8px">↓ CONFLICT</div>`;
+                } else {
+                    tile.innerHTML = `<span>${tileNum}</span>`;
+                }
+                board.appendChild(tile);
+            }
+        }
+    }
+
+    function drawConnectors() {
+        const svg = document.getElementById('game-canvas');
+        svg.innerHTML = ''; 
+        const isDark = document.body.getAttribute('data-theme') === 'dark';
+        const boardRect = document.getElementById('game-board').getBoundingClientRect();
+        const tileSize = boardRect.width / 10;
+
+        function getCenter(pos) {
+            const row = Math.floor((pos - 1) / 10);
+            const col = (pos - 1) % 10;
+            const xCol = (row % 2 === 0) ? col : 9 - col;
+            const yRow = 9 - row;
+            return { x: xCol * tileSize + tileSize / 2, y: yRow * tileSize + tileSize / 2 };
+        }
+
+        for (let start in ladders) {
+            const p1 = getCenter(start); const p2 = getCenter(ladders[start]);
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", p1.x); line.setAttribute("y1", p1.y);
+            line.setAttribute("x2", p2.x); line.setAttribute("y2", p2.y);
+            line.setAttribute("stroke", isDark ? "rgba(63, 185, 80, 0.6)" : "rgba(35, 134, 54, 0.4)");
+            line.setAttribute("stroke-width", "4"); line.setAttribute("stroke-dasharray", "8,4");
+            svg.appendChild(line);
+        }
+
+        for (let start in snakes) {
+            const p1 = getCenter(start); const p2 = getCenter(snakes[start]);
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            const midX = (p1.x + p2.x) / 2 + 25; const midY = (p1.y + p2.y) / 2;
+            path.setAttribute("d", `M ${p1.x} ${p1.y} Q ${midX} ${midY} ${p2.x} ${p2.y}`);
+            path.setAttribute("stroke", isDark ? "rgba(248, 81, 73, 0.6)" : "rgba(207, 34, 46, 0.4)");
+            path.setAttribute("stroke-width", "4"); path.setAttribute("fill", "transparent");
+            svg.appendChild(path);
+        }
+    }
+
+    const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    function getCoords(pos, pNum) {
+        const boardRect = document.getElementById('game-board').getBoundingClientRect();
+        const tileSize = boardRect.width / 10;
+        const row = Math.floor((pos - 1) / 10);
+        const col = (pos - 1) % 10;
+        const xCol = (row % 2 === 0) ? col : 9 - col;
+        const yRow = 9 - row;
+        return {
+            left: (xCol * tileSize + (tileSize / 4) + (pNum * 4)) + "px",
+            top: (yRow * tileSize + (tileSize / 4)) + "px"
+        };
+    }
+
+    function updatePlayerPositions() {
+        [1, 2].forEach(pNum => {
+            const pos = pNum === 1 ? p1Pos : p2Pos;
+            const coords = getCoords(pos, pNum);
+            const pElem = document.getElementById(`p${pNum}`);
+            if(pElem) { pElem.style.left = coords.left; pElem.style.top = coords.top; }
+        });
+        drawConnectors();
+    }
+
+    async function playTurn() {
+        const btn = document.getElementById('roll-btn');
+        btn.disabled = true;
+        const dice = Math.floor(Math.random() * 6) + 1;
+        document.getElementById('dice-result').innerText = "🎲 " + dice;
+        const pElem = document.getElementById(`p${currentTurn}`);
+        let currentPos = currentTurn === 1 ? p1Pos : p2Pos;
+        logMsg(`Player ${currentTurn} rolled ${dice}. Committing...`);
+
+        for (let i = 1; i <= dice; i++) {
+            currentPos++;
+            if (currentPos > 100) { currentPos = 100; break; }
+            const coords = getCoords(currentPos, currentTurn);
+            pElem.style.left = coords.left; pElem.style.top = coords.top;
+            pElem.style.transform = "scale(1.4) translateY(-12px)";
+            await wait(200); pElem.style.transform = "scale(1) translateY(0)";
+            await wait(100);
+        }
+
+        if (ladders[currentPos]) {
+            await wait(400); logMsg(`[SUCCESS] PR Merged! Skipping ahead.`);
+            currentPos = ladders[currentPos];
+        } else if (snakes[currentPos]) {
+            await wait(400); logMsg(`[ERROR] Build Failed! Reverting.`);
+            currentPos = snakes[currentPos];
+        }
+
+        const finalCoords = getCoords(currentPos, currentTurn);
+        pElem.style.left = finalCoords.left; pElem.style.top = finalCoords.top;
+
+        if (currentTurn === 1) p1Pos = currentPos; else p2Pos = currentPos;
+
+        if (currentPos === 100) {
+            alert(`Player ${currentTurn} successfully deployed to Production!`);
+            location.reload(); return;
+        }
+
+        currentTurn = currentTurn === 1 ? 2 : 1;
+        const display = document.getElementById('turn-display');
+        display.innerText = `Player ${currentTurn} to Roll`;
+        display.style.color = currentTurn === 1 ? 'var(--gh-blue)' : '#bf3989';
+        btn.disabled = false;
+    }
+
+    function logMsg(msg) {
+        const log = document.getElementById('game-log');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry'; entry.innerText = "> " + msg;
+        log.prepend(entry);
+    }
+
+    window.onload = () => { createBoard(); setTimeout(updatePlayerPositions, 300); };
+    window.onresize = updatePlayerPositions;
+</script>
+</body>
+</html>
